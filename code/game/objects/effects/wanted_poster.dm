@@ -1,10 +1,55 @@
 /obj/item/poster/wanted
 	icon_state = "rolled_poster"
+	var/wanted_name
+	var/icon/person_icon
+	var/datum/data/record/picked
 
 /obj/item/poster/wanted/Initialize(mapload, icon/person_icon, wanted_name, description)
 	. = ..(mapload, new /obj/structure/sign/poster/wanted(src, person_icon, wanted_name, description))
 	name = "wanted poster ([wanted_name])"
 	desc = "A wanted poster for [wanted_name]."
+
+/obj/item/poster/wanted/ui_interact(mob/user, flag1)
+	. = ..()
+//	if(is_secured(user))
+
+	var/names = ""
+	for(var/datum/data/record/t in GLOB.data_core.general)//Picks from crew manifest.
+		names += "<A href='byond://?src=[REF(src)];name=" + t.fields["name"] + "'>" + t.fields["name"] + "</A>"
+	var/dat = "<tt>[names]</tt>"
+	user << browse(dat, "window=poster")
+	onclose(user, "poster")
+	return
+
+
+/obj/item/poster/wanted/Topic(href, href_list)
+	..()
+
+	if(!usr.canUseTopic(src, BE_CLOSE))
+		usr << browse(null, "window=poster")
+		onclose(usr, "poster")
+		return
+
+	if (href_list["name"])
+		for(var/datum/data/record/E in GLOB.data_core.general)
+			if(href_list["name"] == E.fields["name"])
+				picked=E
+		refresh_poster()
+
+
+
+	if(usr)
+		attack_self(usr)
+
+	return
+
+/obj/item/poster/wanted/proc/refresh_poster()
+	if(picked)
+		wanted_name = picked.fields["name"]
+		person_icon = picked.fields["photo_front"]
+	name = "wanted poster ([wanted_name])"
+	desc = "A wanted poster for [wanted_name]."
+	return
 
 /obj/structure/sign/poster/wanted
 	var/wanted_name
@@ -31,8 +76,11 @@
 	the_icon.Insert(icon('icons/obj/contraband.dmi', "poster_ripped"), "poster_ripped")
 	icon = the_icon
 
+/obj/structure/sign/poster/wanted/
+
 /obj/structure/sign/poster/wanted/roll_and_drop(turf/location)
 	var/obj/item/poster/P = ..(location)
 	P.name = "wanted poster ([wanted_name])"
 	P.desc = "A wanted poster for [wanted_name]."
 	return P
+
